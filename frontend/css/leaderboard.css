@@ -1,0 +1,115 @@
+.leaderboardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.leaderboardHeader h2 {
+    font-size: 28px;
+    margin: 0px;
+}
+
+.leaderboardHeader a {
+    width: auto;
+    padding: 10px 20px;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.leaderboard-table th, .leaderboard-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.leaderboard-table th {
+    background: var(--bg);
+    color: var(--muted);
+    font-weight: normal;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.leaderboard-table tr:last-child td {
+    border-bottom: none;
+}
+
+.leaderboard-table tbody tr {
+    transition: background 0.2s;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: var(--accent-dim);
+}
+
+.highlight-row {
+    background: var(--accent-dim) !important;
+    border-left: 3px solid var(--accent);
+}
+
+.highlight-row td {
+    color: var(--accent);
+}
+
+.rank-cell {
+    color: var(--accent);
+    font-weight: bold;
+    width: 80px;
+}
+
+.elo-cell {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--text);
+    width: 120px;
+}
+
+.cell-error {
+    text-align: center;
+    color: var(--error);
+    padding: 20px;
+}
+
+@media (max-height: 850px), (max-width: 600px) {
+    .leaderboardHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .leaderboardHeader h2 {
+        font-size: 24px;
+    }
+
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 12px 10px;
+        font-size: 13px;
+    }
+
+    .leaderboard-table th {
+        font-size: 11px;
+    }
+
+    .rank-cell {
+        width: 60px;
+    }
+
+    .elo-cell {
+        width: 80px;
+    }
+}

@@ -1,0 +1,26 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: arena_mysql
+    ports:
+      - "3306:3306"
+    env_file: .env
+    environment:
+      # If MYSQL_ROOT_PASSWORD is not set in .env, fall back to 'root'
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MYSQL_DATABASE: arena_db
+      # Allow creating a non-root user from .env (optional)
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: --default-authentication-plugin=mysql_native_password
+
+  mongo-db:
+    image: mongo:4.4
+    container_name: arena_mongo
+    ports:
+      - "27017:27017"
+    env_file: .env
+    environment:
+      # If MONGO_URI is set, developer may want to override; leaving default binding
+      # Mongo image does not directly consume MONGO_URI but keeping env_file for parity
+      MONGO_INITDB_DATABASE: arena_db
