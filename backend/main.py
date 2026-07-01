@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 import mysql.connector
 from mysql.connector import pooling
 import time
+import uuid
+from datetime import datetime
 
 load_dotenv()
 
@@ -41,7 +43,7 @@ db_pool=pooling.MySQLConnectionPool(
     pool_name="arena_pool",
     pool_size=10,
     pool_reset_session=True,
-    host="localhost",
+    host=os.getenv("MYSQL_HOST", "localhost"),
     user=os.getenv("MYSQL_USER"),
     password=os.getenv("MYSQL_PASSWORD"),
     database="arena_db",
@@ -79,6 +81,48 @@ def root():
 #data model for login request
 class login_data(BaseModel):
     image: str #this str will be in base64
+
+class register_data(BaseModel):
+    name: str
+    image: str
+
+#endpoint for registering new users
+@app.post("/register")
+def auth_register(request: Request, response: Response, user_data: register_data):
+    local_conn = db_pool.get_connection()
+    sql_cursor = local_conn.cursor()
+
+    sql_cursor.execute("SELECT uid FROM users WHERE name = %s", (user_data.name.strip(),))
+    existing_user = sql_cursor.fetchone();
+
+    if existing_user:
+        sql_cursor.close()
+        local_conn.close()
+        return JSONResponse(status_code=400, content={"success": False, "reason": "username_taken"})
+
+    new_uid = str(uuid.uuid4())
+    new_encoding_dict = build_encodings_cache({new_uid: user_data.image})
+
+    if new_uid not in new_encoding_dict:
+        sql_cursor.close()
+        local_conn.close()
+        return JSONResponse(status_code=400, content={"success": False, "reason": "no_face_detected"})
+
+    images_collection.insert_one({"uid": new_uid, "image_data": user_data.image, "scraped_at": datetime.now()})
+
+    sql_cursor.execute("INSERT INTO users (uid, name, elo_rating, is_online) VALUES(%s, %s, %s, %s)", (new_uid, user_data.name, 1200, True)) 
+    local_conn.commit()
+
+    encodings_cache[new_uid] = new_encoding_dict[new_uid]
+
+    new_session_id = secrets.token_urlsafe(32)
+    active_sessions[new_session_id] = {"uid": new_uid, "name": user_data.name, "elo": 1200}
+    response.set_cookie(key="session_id", value=new_session_id, httponly=True)
+
+    sql_cursor.close()
+    local_conn.close()
+
+    return {"success": True, "uid": new_uid, "name": user_data.name, "elo": 1200}
 
 #endpoint for login
 @app.post("/login")

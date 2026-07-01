@@ -334,6 +334,25 @@ canvas {
     color: var(--muted);
 }
 
+/* register redirection link */
+.reg-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.reg-link a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.reg-link a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
 /* error card */
 .err-box {
     display: none;
@@ -401,6 +420,18 @@ canvas {
     color: var(--muted);
     letter-spacing: 1px;
     text-align: center;
+}
+
+/* register name field for register.html */
+
+#nameInput {
+    width: 100%;
+    padding: 13px;
+    margin-bottom: 18px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 15px;
 }
 
 @media (max-height: 850px), (max-width: 600px) {

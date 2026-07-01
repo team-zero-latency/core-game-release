@@ -9,7 +9,7 @@ This project is a real-time Tic-Tac-Toe multiplayer game with facial-auth login,
 * **Server-Authoritative Game Engine:** The Tic-Tac-Toe game state is strictly validated on the backend to prevent client-side manipulation or cheating. 
 * **Fault-Tolerant Disconnect Handling:** The WebSocket manager detects broken pipes or "ragequits" mid-match, safely destroying the isolated game room and automatically penalizing the disconnected player.
 * **FIDE-Standard Elo Ranking System:** Implements the official zero-sum Elo rating algorithm (utilizing a K-factor of 32) to mathematically calculate expected win probabilities and dynamically update player rankings based on match outcomes.
-* **Hybrid Database Architecture & ETL:** Features a custom data ingestion pipeline (`data_scraper.py`) that implements a hybrid storage model: utilizing **MySQL** for structured, relational data (user stats, match history) and **MongoDB** for unstructured binary data (Base64 encoded profile images).
+* **Dynamic Biometric Onboarding & Hybrid Storage:** Replaces legacy batch-ingestion pipelines with a real-time, transactional registration workflow. Synchronously provisions new accounts by capturing webcam streams, hot-loading facial encodings into an in-memory server cache for instantaneous subsequent authentication, and preserving records across a dual-database layout: **MySQL** for relational gameplay metrics and **MongoDB** for unstructured binary image profiles.
 
 ### Prerequisites
 
@@ -98,7 +98,7 @@ Run with Docker:
 docker exec -it arena_mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" arena_db -e "
 CREATE TABLE IF NOT EXISTS users (
     uid VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
+    name VARCHAR(200) UNIQUE NOT NULL,
     elo_rating INT NOT NULL DEFAULT 1200,
     is_online BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -146,17 +146,7 @@ From repository root:
 uv sync
 ```
 
-### 4. Run Phase-1 data ingestion
-
-From repository root:
-
-```bash
-uv run data_scraper.py
-```
-
-The script reads `batch_data.csv`, inserts user metadata into MySQL, and upserts profile images into MongoDB.
-
-### 5. Start backend (HTTP + WebSocket services)
+### 4. Start backend (HTTP + WebSocket services)
 
 In terminal 1:
 
@@ -165,10 +155,7 @@ cd backend
 uv run uvicorn main:app --host localhost --port 8000
 ```
 
-Note: On first startup the backend builds a face-encoding cache from MongoDB images; this can take some time (tens of seconds to a few minutes) depending on the number of profiles and CPU performance. Wait for the server logs to show that the encodings cache is built before opening the frontend.
-
-
-### 6. Start frontend
+### 5. Start frontend
 
 In terminal 2 (from repository root):
 
@@ -179,10 +166,12 @@ python3 -m http.server 5500
 Open:
 
 ```text
-http://localhost:5500/frontend/index.html
+http://localhost:5500/frontend/register.html
 ```
 
-Do not open `index.html` using `file://`.
+Warning: Do not open `register.html` using `file://`.
+
+Note: You must register your face first to create an account before you can log in and access the multiplayer lobby.
 
 ## Database schemas
 

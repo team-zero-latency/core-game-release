@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arena — Login</title>
+<title>Arena — Register</title>
 <link href="css/login.css" rel="stylesheet">
 <script>
   const savedTheme = localStorage.getItem('arena-theme');
@@ -49,10 +49,12 @@
       <span id="statusText">Waiting for camera</span>
     </div>
 
-    <button class="btn" id="loginBtn" disabled>Identify Me</button>
+    <input type="text" id="nameInput" placeholder="Enter your name">
+
+    <button class="btn" id="registerBtn" disabled>Register</button>
 
     <div class="reg-link">
-      New to Arena? <a href="register.html">Register your face here</a>
+      Already registered? <a href="index.html">Login here</a>
     </div>
 
     <div class="err-box" id="errBox" role="alert" aria-live="assertive"></div>
@@ -77,6 +79,6 @@
 </main>
 
 <script src="js/theme.js"></script>
-<script src="js/login.js"></script>
+<script src="js/register.js"></script>
 </body>
 </html>
