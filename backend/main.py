@@ -1,15 +1,13 @@
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from pymongo import MongoClient
-import mysql.connector
-from utils.facial_recognition_module import build_encodings_cache, find_closest_match
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import secrets
 import elo #importing the python file which calculates the new elos
 import os
+import math
 from dotenv import load_dotenv
-import mysql.connector
 from mysql.connector import pooling
 import time
 import uuid
@@ -65,13 +63,27 @@ sql_cursor=conn.cursor(dictionary=True)
 
 #fetch all profile images from mongodb and create a dictionary of uid to image data
 images_collection = mongo_db["profile_images"]
-print("loading images from mongodb")
-db_images_dict = {img["uid"]: img["image_data"] for img in images_collection.find()}
-print("images loaded:", len(db_images_dict))
-#build the encodings cache using the facial recognition module
-print("building encodings cache")
-encodings_cache = build_encodings_cache(db_images_dict)
-print("encodings cache built")
+print("Loading embeddings from MongoDB...")
+db_images = list(images_collection.find())
+encodings_cache = {doc["uid"]: doc.get("embedding") for doc in db_images if "embedding" in doc}
+print("Embeddings loaded:", len(encodings_cache))
+
+def calculate_distance(emb1, emb2):
+    return math.sqrt(sum((a-b)**2 for a, b in zip(emb1, emb2)))
+
+def find_closest_match(login_embedding, cache, threshold=0.45):
+    best_match = None
+    min_dist = float('inf')
+    for uid, known_embed in cache.items():
+        if not known_embed:
+            continue
+        dist = calculate_distance(login_embedding, known_embed)
+        if dist < min_dist and dist < threshold:
+            min_dist = dist
+            best_match = uid
+    return best_match
+
+
 
 #endpoint to check if the backend is running
 @app.get("/")
@@ -80,11 +92,12 @@ def root():
 
 #data model for login request
 class login_data(BaseModel):
-    image: str #this str will be in base64
+    embedding: list[float] # The 128-d array from the browser
 
 class register_data(BaseModel):
     name: str
     image: str
+    embedding: list[float]
 
 #endpoint for registering new users
 @app.post("/register")
@@ -101,19 +114,13 @@ def auth_register(request: Request, response: Response, user_data: register_data
         return JSONResponse(status_code=400, content={"success": False, "reason": "username_taken"})
 
     new_uid = str(uuid.uuid4())
-    new_encoding_dict = build_encodings_cache({new_uid: user_data.image})
-
-    if new_uid not in new_encoding_dict:
-        sql_cursor.close()
-        local_conn.close()
-        return JSONResponse(status_code=400, content={"success": False, "reason": "no_face_detected"})
-
+    
     images_collection.insert_one({"uid": new_uid, "image_data": user_data.image, "scraped_at": datetime.now()})
 
     sql_cursor.execute("INSERT INTO users (uid, name, elo_rating, is_online) VALUES(%s, %s, %s, %s)", (new_uid, user_data.name, 1200, True)) 
     local_conn.commit()
 
-    encodings_cache[new_uid] = new_encoding_dict[new_uid]
+    encodings_cache[new_uid] = user_data.embedding
 
     new_session_id = secrets.token_urlsafe(32)
     active_sessions[new_session_id] = {"uid": new_uid, "name": user_data.name, "elo": 1200}
@@ -129,11 +136,9 @@ def auth_register(request: Request, response: Response, user_data: register_data
 def auth_login(request: Request, response: Response, user_login_data: login_data):
     local_conn = db_pool.get_connection()
     sql_cursor = local_conn.cursor(dictionary=True)
-    login_image_data = user_login_data.image
 
-    #find the closest match for using the facial recognition module
-    print("running facial recognition")
-    closest_match = find_closest_match(login_image_data, encodings_cache)
+    print("Running facial recognition...")
+    closest_match = find_closest_match(user_login_data.embedding, encodings_cache)
 
     #check if a match is found
     if closest_match is not None:

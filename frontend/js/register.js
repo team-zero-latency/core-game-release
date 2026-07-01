@@ -16,6 +16,17 @@ const scanLine = document.getElementById('scanLine');
 let isRequesting = false;
 let isCameraReady = false;
 
+async function loadFaceModels() {
+	setStatus('loading', 'Loading AI models...') ;
+	const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+	await Promise.all([
+		faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+		faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+		faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+	]);
+	startCamera(); // Start the camera after the models load
+}
+
 //Camera Initialisation
 async function startCamera() {
   try {
@@ -61,18 +72,31 @@ registerBtn.addEventListener('click', async () => {
   isRequesting = true;
 
   hideError();
-  setStatus('loading', 'Verifying identity…');
+  setStatus('loading', 'Scanning face...');
   registerBtn.disabled = true;
 
-  const base64 = captureFrame();
-  showDebug(base64); 
-
   try {
+    // The client browser handles the ML inference
+    const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+
+    if (!detection) {
+      setStatus('error', 'Authentication failed');
+      showError('No face detected. Please ensure you are clearly visible.');
+      loginBtn.disabled = false;
+      isRequesting = false;
+      return;
+    }
+
+    const embeddingArray = Array.from(detection.descriptor);
+
+    setStatus('loading', 'Verifying identity...');
+
+    // Send only the inferred data (numbers) to verify with the backend
     const res = await fetch(`${API_BASE}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ name: nameInput.value.trim(), image: base64 })
+      body: JSON.stringify({ name: nameInput.value.trim(), image: captureFrame(), embedding: embeddingArray })
     });
 
     const data = await res.json();
@@ -88,9 +112,7 @@ registerBtn.addEventListener('click', async () => {
     // Handle 400 & 404 Failures
     else {
       setStatus('error', 'Registration failed');
-      if(res.status === 404 && data.reason === 'no_face_detected') {
-        showError('Face not detected');
-      } else if(res.status === 400 && data.reason === 'username_taken') {
+      if(res.status === 400 && data.reason === 'username_taken') {
         showError('Sorry this name has already been taken. Please choose another one');
       } else {
         showError('Unknown authentication error occurred')
@@ -128,7 +150,7 @@ function showDebug(base64) {
   debugSize.textContent = `~${Math.round((base64.length * 3) / 4 / 1024)} KB`;
 }
 
-// Boot up
-startCamera();
+// Load the face models
+loadFaceModels();
 
 nameInput.addEventListener('input', updateButtonState);

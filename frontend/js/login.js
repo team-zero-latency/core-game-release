@@ -14,13 +14,24 @@ const scanLine = document.getElementById('scanLine');
 
 let isRequesting = false;
 
+async function loadFaceModels() {
+	setStatus('loading', 'Loading AI models...') ;
+	const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+	await Promise.all([
+		faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+		faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+		faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+	]);
+	startCamera(); // Start the camera after the models load
+}
+
 async function checkExistingSession() {
   try {
     const res = await fetch(`${API_BASE}/me`, {credentials: 'include'});
     const data = await res.json();
 
     if(data.success){
-      window.location.href = 'dashboard.html';
+    	window.location.href = 'dashboard.html';
     }
   } catch(err) {
     //Stay on login page only
@@ -64,18 +75,31 @@ loginBtn.addEventListener('click', async () => {
   isRequesting = true;
 
   hideError();
-  setStatus('loading', 'Verifying identity…');
+  setStatus('loading', 'Scanning face…');
   loginBtn.disabled = true;
 
-  const base64 = captureFrame();
-  showDebug(base64); 
-
   try {
+	// The client browser handles the ML inference
+	const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+
+	if (!detection) {
+		setStatus('error', 'Authentication failed');
+		showError('No face detected. Please ensure you are clearly visible.');
+		loginBtn.disabled = false;
+		isRequesting = false;
+		return;
+	}
+
+	const embeddingArray = Array.from(detection.descriptor);
+
+	setStatus('loading', 'Verifying identity...');
+
+	// Send only the inferred data (numbers) to verify with the backend
     const res = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ image: base64 })
+      body: JSON.stringify({ embedding: embeddingArray })
     });
 
     const data = await res.json();
@@ -133,5 +157,5 @@ function showDebug(base64) {
   debugSize.textContent = `~${Math.round((base64.length * 3) / 4 / 1024)} KB`;
 }
 
-// Boot up
-startCamera();
+// Load the face models
+loadFaceModels();
