@@ -1,83 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Arena — Login</title>
-  <link href="css/login.css" rel="stylesheet">
-  <script>
-    const savedTheme = localStorage.getItem('arena-theme');
-    
-    if (savedTheme === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-    } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('arena-theme', 'light'); 
-    }
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Arena — Login</title>
+        <link href="css/login.css" rel="stylesheet">
+        <script>
+            const savedTheme = localStorage.getItem('arena-theme');
+            
+            if (savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+            } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    localStorage.setItem('arena-theme', 'light'); 
+            }
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    </head>
+    <body>
+        <main class="container">
+            <header class="header">
+                <div class="header-top">
+                    <div class="wordmark">ARENA</div>
+                    <button id="themeToggle" class="theme-btn" aria-label="Toggle light theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="subtitle">Identity-Verified Multiplayer · Tic-Tac-Toe</div>
+            </header>
 
-<main class="container">
-  <header class="header">
-    <div class="header-top">
-      <div class="wordmark">ARENA</div>
-      <button id="themeToggle" class="theme-btn" aria-label="Toggle light theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-    </div>
-    <div class="subtitle">Identity-Verified Multiplayer · Tic-Tac-Toe</div>
-  </header>
+            <section class="card">
+                <div class="cam-wrap" id="camWrap">
+                    <div class="cam-placeholder" id="placeholder">
+                        <svg class="cam-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+                        </svg>
+                        <span>Initialising camera…</span>
+                    </div>
+                    <video id="video" autoplay playsinline muted disablePictureInPicture disableRemotePlayback></video>
+                    <canvas id="canvas" aria-hidden="true"></canvas>
+                    <div class="scan-line" id="scanLine" aria-hidden="true"></div>
+                </div>
 
-  <section class="card">
-    <div class="cam-wrap" id="camWrap">
-      <div class="cam-placeholder" id="placeholder">
-        <svg class="cam-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
-        </svg>
-        <span>Initialising camera…</span>
-      </div>
-      <video id="video" autoplay playsinline muted disablePictureInPicture disableRemotePlayback></video>
-      <canvas id="canvas" aria-hidden="true"></canvas>
-      <div class="scan-line" id="scanLine" aria-hidden="true"></div>
-    </div>
+                <div class="status" id="status" aria-live="polite">
+                    <div class="dot"></div>
+                    <span id="statusText">Waiting for camera</span>
+                </div>
 
-    <div class="status" id="status" aria-live="polite">
-      <div class="dot"></div>
-      <span id="statusText">Waiting for camera</span>
-    </div>
+                <button class="btn" id="loginBtn" disabled>Identify Me</button>
 
-    <button class="btn" id="loginBtn" disabled>Identify Me</button>
+                <div class="reg-link">
+                    New to Arena? <a href="register.html">Register your face here</a>
+                </div>
 
-    <div class="reg-link">
-      New to Arena? <a href="register.html">Register your face here</a>
-    </div>
+                <div class="err-box" id="errBox" role="alert" aria-live="assertive"></div>
 
-    <div class="err-box" id="errBox" role="alert" aria-live="assertive"></div>
+                <!-- Debug panel — shows Base64 preview so you can verify capture before backend is ready -->
+                <div class="debug-box" id="debugBox">
+                    <div class="debug-header">
+                        <span>Debug Output</span>
+                        <span id="debugSize"></span>
+                    </div>
+                    <div class="debug-body">
+                        <div class="debug-label">Base64 preview (first 120 chars)</div>
+                        <span id="debugPreview"></span>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Debug panel — shows Base64 preview so you can verify capture before backend is ready -->
-    <div class="debug-box" id="debugBox">
-      <div class="debug-header">
-        <span>Debug Output</span>
-        <span id="debugSize"></span>
-      </div>
-      <div class="debug-body">
-        <div class="debug-label">Base64 preview (first 120 chars)</div>
-        <span id="debugPreview"></span>
-      </div>
-    </div>
-  </section>
+            <footer class="footer-note">
+                <p>Built by <strong>Team zero-latency</strong></p>
+                Open browser console for full logs · Paste Base64 into base64.guru to verify frame
+            </footer>
+        </main>
 
-  <footer class="footer-note">
-    <p>Built by <strong>Team zero-latency</strong></p>
-    Open browser console for full logs · Paste Base64 into base64.guru to verify frame
-  </footer>
-</main>
-
-<script src="js/theme.js"></script>
-<script src="js/login.js"></script>
-</body>
+        <script src="js/theme.js"></script>
+        <script src="js/login.js"></script>
+    </body>
 </html>

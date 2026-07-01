@@ -1,112 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arena — Dashboard</title>
-<link href="css/dashboard.css" rel="stylesheet">
-<script>
-  const savedTheme = localStorage.getItem('arena-theme');
-  if (savedTheme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-  } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      document.documentElement.setAttribute('data-theme', 'light');
-      localStorage.setItem('arena-theme', 'light'); 
-  }
-</script>
-</head>
-<body>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Arena — Dashboard</title>
+        <link href="css/dashboard.css" rel="stylesheet">
+        <script>
+            const savedTheme = localStorage.getItem('arena-theme');
+            if (savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+            } else if (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    localStorage.setItem('arena-theme', 'light'); 
+            }
+        </script>
+    </head>
+    <body>
+        <main class="container">
+            <header class="header">
+                <div class="header-top">
+                    <div class="wordmark">ARENA</div>
+                    <button id="themeToggle" class="theme-btn" aria-label="Toggle light theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="subtitle">Identity-Verified Multiplayer · Tic-Tac-Toe</div>
+            </header>
 
-<main class="container">
-  <header class="header">
-    <div class="header-top">
-      <div class="wordmark">ARENA</div>
-      <button id="themeToggle" class="theme-btn" aria-label="Toggle light theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-    </div>
-    <div class="subtitle">Identity-Verified Multiplayer · Tic-Tac-Toe</div>
-  </header>
+            <section class="card">
 
-  <section class="card">
+                <div id="welcomeHeader">
+                    <div class="tag">Authenticated</div>
+                    <div class="welcome" id="welcomeName">Welcome</div>
+                    <div class="uid-line">UID: <span id="uidDisplay">—</span></div>
+                    <div class="uid-line">Elo Rating: <span id="eloDisplay">-</span></div>
 
-    <div id="welcomeHeader">
-      <div class="tag">Authenticated</div>
-      <div class="welcome" id="welcomeName">Welcome</div>
-      <div class="uid-line">UID: <span id="uidDisplay">—</span></div>
-      <div class="uid-line">Elo Rating: <span id="eloDisplay">-</span></div>
+                    <div class="divider"></div>
 
-      <div class="divider"></div>
+                    <div class="status-row" aria-live="polite">
+                        <div class="online-dot" aria-hidden="true"></div>
+                        <span>You are online and visible to other players</span>
+                    </div>
+                </div>
+                
+                <section id="lobbySection" aria-labelledby="lobbyHeading">
+                    <h3 id="lobbyHeading">Live Lobby</h3>
+                    <p class="subtitle">Click a user to send a challenge</p>
 
-      <div class="status-row" aria-live="polite">
-        <div class="online-dot" aria-hidden="true"></div>
-        <span>You are online and visible to other players</span>
-      </div>
-    </div>
-    
-    <section id="lobbySection" aria-labelledby="lobbyHeading">
-      <h3 id="lobbyHeading">Live Lobby</h3>
-      <p class="subtitle">Click a user to send a challenge</p>
+                    <section id="cancelSection" hidden>
+                        <h2 id="cancelHeading">Want to cancel the challenge?</h2>
+                        <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
+                    </section>
 
-      <section id="cancelSection" hidden>
-        <h2 id="cancelHeading">Want to cancel the challenge?</h2>
-        <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
-      </section>
+                    <ul class="lobby-grid" id="lobbyGrid" role="list">
 
-      <ul class="lobby-grid" id="lobbyGrid" role="list">
+                    </ul>
+                </section>
 
-      </ul>
-    </section>
+                <section id="incomingSection" hidden>
+                    <div class="tag">Incoming Challenges</div>
+                    <ul id="incomingList"></ul>
+                </section>
 
-    <section id="incomingSection" hidden>
-      <div class="tag">Incoming Challenges</div>
-      <ul id="incomingList"></ul>
-    </section>
+                <section id="gameSection" aria-labelledby="gameHeading" hidden>
+                    <header class="game-header">
+                        <h3 id="gameHeading">Match in Progress</h3>
+                        <p><strong id="userNameDisplay"></strong> (<span id="playerSymbol"></span>) vs <strong id="opponentNameDisplay"></strong></p>
+                        <p id="turnIndicator" aria-live="polite"></p>
+                    </header>
 
-    <section id="gameSection" aria-labelledby="gameHeading" hidden>
-      <header class="game-header">
-        <h3 id="gameHeading">Match in Progress</h3>
-        <p><strong id="userNameDisplay"></strong> (<span id="playerSymbol"></span>) vs <strong id="opponentNameDisplay"></strong></p>
-        <p id="turnIndicator" aria-live="polite"></p>
-      </header>
+                    <div class="tictactoe-board" id="gameBoard" role="grid">
+                        <button class="cell" role="gridcell" aria-label="Top Left" data-index="0"></button>
+                        <button class="cell" role="gridcell" aria-label="Top Center" data-index="1"></button>
+                        <button class="cell" role="gridcell" aria-label="Top Right" data-index="2"></button>
+                        <button class="cell" role="gridcell" aria-label="Middle Left" data-index="3"></button>
+                        <button class="cell" role="gridcell" aria-label="Middle Center" data-index="4"></button>
+                        <button class="cell" role="gridcell" aria-label="Middle Right" data-index="5"></button>
+                        <button class="cell" role="gridcell" aria-label="Bottom Left" data-index="6"></button>
+                        <button class="cell" role="gridcell" aria-label="Bottom Center" data-index="7"></button>
+                        <button class="cell" role="gridcell" aria-label="Bottom Right" data-index="8"></button>
+                    </div>
 
-      <div class="tictactoe-board" id="gameBoard" role="grid">
-        <button class="cell" role="gridcell" aria-label="Top Left" data-index="0"></button>
-        <button class="cell" role="gridcell" aria-label="Top Center" data-index="1"></button>
-        <button class="cell" role="gridcell" aria-label="Top Right" data-index="2"></button>
-        <button class="cell" role="gridcell" aria-label="Middle Left" data-index="3"></button>
-        <button class="cell" role="gridcell" aria-label="Middle Center" data-index="4"></button>
-        <button class="cell" role="gridcell" aria-label="Middle Right" data-index="5"></button>
-        <button class="cell" role="gridcell" aria-label="Bottom Left" data-index="6"></button>
-        <button class="cell" role="gridcell" aria-label="Bottom Center" data-index="7"></button>
-        <button class="cell" role="gridcell" aria-label="Bottom Right" data-index="8"></button>
-      </div>
+                    <button class="btn btn-resign" id="resignBtn">Resign</button>
+                </section>
 
-      <button class="btn btn-resign" id="resignBtn">Resign</button>
-    </section>
+                <div id="actionButtons" class="action-buttons">
+                    <button class="btn btn-leaderboard" onclick="window.location.href='leaderboard.html'">Leaderboard</button>
+                    <button class="btn" id="logoutBtn">Log Out</button>
+                </div>
+                
+            </section>
 
-    <div id="actionButtons" class="action-buttons">
-      <button class="btn btn-leaderboard" onclick="window.location.href='leaderboard.html'">Leaderboard</button>
-      <button class="btn" id="logoutBtn">Log Out</button>
-    </div>
-    
-  </section>
+            <footer class="footer-note">
+                <p>Built by <strong>Team zero-latency</strong></p>
+            </footer>
 
-  <footer class="footer-note">
-    <p>Built by <strong>Team zero-latency</strong></p>
-  </footer>
+            <dialog id="disconnectedModal">
+                <h2>Disconnected</h2>
+                <p>Arena is currently active in another tab or device.</p>
+                
+                <button class="btn" onclick="window.location.reload()">Use Here Instead</button>
+            </dialog>
+        </main>
 
-  <dialog id="disconnectedModal">
-    <h2>Disconnected</h2>
-    <p>Arena is currently active in another tab or device.</p>
-    
-    <button class="btn" onclick="window.location.reload()">Use Here Instead</button>
-  </dialog>
-</main>
-
-<script src="js/theme.js"></script>
-<script type="module" src="js/dashboard.js"></script>
-</body>
+        <script src="js/theme.js"></script>
+        <script type="module" src="js/dashboard.js"></script>
+    </body>
 </html>
