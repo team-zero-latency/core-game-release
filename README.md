@@ -1,193 +1,93 @@
-## ARENA: Multiplayer Tic-Tac-Toe Game
+# ARENA: Identity-Verified Multiplayer Tic-Tac-Toe
 
-This project is a real-time Tic-Tac-Toe multiplayer game with facial-auth login, FastAPI/WebSockets backend, MySQL + MongoDB storage, and Elo-based leaderboard updates. Built using Python, HTML, CSS and Javascript. 
+This project is a real-time Tic-Tac-Toe multiplayer game featuring zero-latency biometric login, a modular FastAPI/WebSockets backend, resilient hybrid storage (MySQL + MongoDB), and FIDE-standard Elo matchmaking. Built using HTML, CSS, JavaScript and Python.
 
 ## Key Features & Technical Highlights
 
-* **Custom Secure Session Management:** Implements stateful authentication using cryptographically generated, opaque tokens. Tokens are delivered via `HttpOnly` cookies to mitigate XSS vulnerabilities, and the backend actively prevents concurrent logins (handling session takeovers gracefully).
-* **Asynchronous Matchmaking Lobby:** Utilizes WebSockets for real-time peer-to-peer matchmaking. Features live lobby status tracking, TTL (Time-To-Live) expiring challenge requests (30-second limits), and automatic cleanup of orphaned connections.
-* **Server-Authoritative Game Engine:** The Tic-Tac-Toe game state is strictly validated on the backend to prevent client-side manipulation or cheating. 
+* **Zero-Latency Biometric Onboarding (Edge ML):** Replaces legacy server-side ingestion pipelines with real-time, client-side inference using `face-api.js`. The browser captures webcam streams and computes 128-d facial encodings directly on the user's GPU, passing only lightweight arrays to the backend for split-second Euclidean distance verification.
+* **Resilient Microservice Architecture:** The backend operates as a fully modularized FastAPI application, containerized alongside MySQL, MongoDB, and an Nginx frontend via Docker Compose.
+* **Automated Environment Provisioning:** Employs intelligent container healthchecks and automated Python backoff/retry loops to guarantee reliable startup sequences. The application self-initializes its relational SQL tables and NoSQL indexes on boot.
+* **Custom Secure Session Management:** Implements stateful authentication using cryptographically generated, opaque tokens. Tokens are delivered via `HttpOnly` cookies to mitigate XSS vulnerabilities, and the backend actively prevents concurrent logins.
+* **Asynchronous Matchmaking Lobby:** Utilizes WebSockets for real-time peer-to-peer matchmaking. Features live lobby status tracking, TTL (Time-To-Live) expiring challenge requests, and automatic cleanup of orphaned connections.
 * **Fault-Tolerant Disconnect Handling:** The WebSocket manager detects broken pipes or "ragequits" mid-match, safely destroying the isolated game room and automatically penalizing the disconnected player.
-* **FIDE-Standard Elo Ranking System:** Implements the official zero-sum Elo rating algorithm (utilizing a K-factor of 32) to mathematically calculate expected win probabilities and dynamically update player rankings based on match outcomes.
-* **Dynamic Biometric Onboarding & Hybrid Storage:** Replaces legacy batch-ingestion pipelines with a real-time, transactional registration workflow. Synchronously provisions new accounts by capturing webcam streams, hot-loading facial encodings into an in-memory server cache for instantaneous subsequent authentication, and preserving records across a dual-database layout: **MySQL** for relational gameplay metrics and **MongoDB** for unstructured binary image profiles.
+* **FIDE-Standard Elo Ranking System:** Implements the official zero-sum Elo rating algorithm (K-factor of 32) to mathematically calculate expected win probabilities and dynamically update player rankings.
 
-### Prerequisites
+---
 
-- Python 3.13+
-- [uv](https://docs.astral.sh/uv/)
-- Docker (or Podman) and a compose tool (`docker compose` / `docker-compose` or `podman-compose`)
+## Prerequisites
 
-Note: face-recognition has native dependencies.
+Because this project is fully containerized, you no longer need complex C++ build tools, Python environments, or local database installations.
 
-- On Debian/Ubuntu install the common build libraries before installing Python packages:
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Podman with `podman-compose`)
+* Git
 
-```bash
-sudo apt update && sudo apt install -y build-essential cmake libopenblas-dev liblapack-dev libjpeg-dev
-```
+---
 
-- On Fedora (or RHEL/CentOS), install equivalent development packages:
+## Quick Start Guide
 
-```bash
-sudo dnf install -y @development-tools cmake openblas-devel lapack-devel libjpeg-turbo-devel
-```
-
-Other distributions may require equivalent packages.
-
-### Pre-run checklist
-
-- Ensure these ports are free or change them in the compose and startup commands: 3306 (MySQL), 27017 (MongoDB), 8000 (backend), 5500 (frontend).
-
-### Environment setup (`.env`)
-
-Create a `.env` file at the project root:
+### 1. Environment Setup
+Clone the repository and create a `.env` file at the project root to secure your databases:
 
 ```env
-MYSQL_USER=myownuser
-MYSQL_PASSWORD=myownpass
-MONGO_URI=mongodb://localhost:27017/
+MYSQL_USER=arena_user
+MYSQL_PASSWORD=secure_arena_pass
+MONGO_URI=mongodb://arena_mongo:27017/
 ```
 
-Note: docker-compose is configured to read values from `.env` (so MySQL user/password are picked up automatically). The example uses simple credentials for local testing; the values can be changed to secure credentials for real deployments or evaluations before starting services.
-
-
-### 1. Start databases
-
-From repository root (Docker):
+### 2. Launch the Application
+From the repository root, build and spin up the entire isolated microservice stack in the background:
 
 ```bash
-docker-compose up -d
+docker compose up --build -d
 ```
+*(Note: The Python backend includes a resilient backoff loop and will intelligently wait for the databases to initialize before booting up and auto-generating the required tables).*
 
-Or with Docker Compose plugin:
+### 3. Play the Game (Localhost)
+Open your browser and navigate to:
+    `http://localhost:5500/register.html`
+
+*Note: You must register your face first to create an account before you can log in and access the multiplayer lobby.*
+
+### 4. Stopping the Application
+To safely spin down the microservices and preserve your database state, run from the repository root:
 
 ```bash
-docker compose up -d
+docker compose down
 ```
 
-If using Podman:
+---
 
-```bash
-podman-compose up -d
-```
+## Multiplayer over Local Network (Cross-Device)
 
-This starts:
-- `arena_mysql` on `localhost:3306`
-- `arena_mongo` on `localhost:27017`
+** Important Webcam Security Note:** Modern browsers strictly block webcam access on unencrypted `http://` connections unless the URL is `localhost`. If you want friends to connect via their phones or laptops on your Wi-Fi network, you cannot simply share your Local IP address, as their browsers will block the camera.
 
-### 2. Initialize database schemas
+To easily test multiplayer across devices, use a secure tunnel like [ngrok](https://ngrok.com/):
 
-#### MongoDB
+1. Install `ngrok` on your host machine.
+2. Run the following command in your terminal to tunnel the Nginx frontend port:
+   ```bash
+   ngrok http 5500
+   ```
+3. Ngrok will generate a secure HTTPS link (e.g., `https://abc-123.ngrok.app`).
+4. Share this `https://` link with your friends on the same Wi-Fi network. The browser will recognize the Secure Context and allow webcam access for biometric registration!
 
-Run with Docker:
+---
 
-```bash
-docker exec -it arena_mongo mongo arena_db --eval 'db.profile_images.createIndex({uid: 1}, {unique: true})'
-```
+## Database Architecture
 
-Or with Podman:
-
-```bash
-podman exec -it arena_mongo mongo arena_db --eval 'db.profile_images.createIndex({uid: 1}, {unique: true})'
-```
-
-#### MySQL
-
-Run with Docker:
-
-```bash
-docker exec -it arena_mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" arena_db -e "
-CREATE TABLE IF NOT EXISTS users (
-    uid VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(200) UNIQUE NOT NULL,
-    elo_rating INT NOT NULL DEFAULT 1200,
-    is_online BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE TABLE IF NOT EXISTS matches (
-    match_id INT AUTO_INCREMENT PRIMARY KEY,
-    player_x_uid VARCHAR(50) NOT NULL,
-    player_o_uid VARCHAR(50) NOT NULL,
-    winner_uid VARCHAR(50),
-    forfeit BOOLEAN NOT NULL DEFAULT FALSE,
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (player_x_uid) REFERENCES users(uid),
-    FOREIGN KEY (player_o_uid) REFERENCES users(uid),
-    FOREIGN KEY (winner_uid) REFERENCES users(uid)
-);"'
-```
-
-Or with Podman:
-
-```bash
-podman exec -it arena_mysql sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" arena_db -e "
-CREATE TABLE IF NOT EXISTS users (
-    uid VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    elo_rating INT NOT NULL DEFAULT 1200,
-    is_online BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE TABLE IF NOT EXISTS matches (
-    match_id INT AUTO_INCREMENT PRIMARY KEY,
-    player_x_uid VARCHAR(50) NOT NULL,
-    player_o_uid VARCHAR(50) NOT NULL,
-    winner_uid VARCHAR(50),
-    forfeit BOOLEAN NOT NULL DEFAULT FALSE,
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (player_x_uid) REFERENCES users(uid),
-    FOREIGN KEY (player_o_uid) REFERENCES users(uid),
-    FOREIGN KEY (winner_uid) REFERENCES users(uid)
-);"'
-```
-
-### 3. Install dependencies
-
-From repository root:
-
-```bash
-uv sync
-```
-
-### 4. Start backend (HTTP + WebSocket services)
-
-In terminal 1:
-
-```bash
-cd backend
-uv run uvicorn main:app --host localhost --port 8000
-```
-
-### 5. Start frontend
-
-In terminal 2 (from repository root):
-
-```bash
-python3 -m http.server 5500
-```
-
-Open:
-
-```text
-http://localhost:5500/frontend/register.html
-```
-
-Warning: Do not open `register.html` using `file://`.
-
-Note: You must register your face first to create an account before you can log in and access the multiplayer lobby.
-
-## Database schemas
+The application utilizes a hybrid database approach, isolating relational game metrics from unstructured binary profile data.
 
 ### MySQL (`arena_db`)
 
-#### `users`
-
+**`users` Table**
 | Field      | Type         | Description    |
 | ---------- | ------------ | -------------- |
-| uid        | VARCHAR(50)  | Primary key    |
-| name       | VARCHAR(200) | Player name    |
+| uid        | VARCHAR(50)  | Primary key (UUID) |
+| name       | VARCHAR(200) | Player name (Unique) |
 | elo_rating | INT          | Player ranking |
-| is_online  | BOOLEAN      | Online status  |
+| is_online  | BOOLEAN      | Real-time online status  |
 
-#### `matches`
-
+**`matches` Table**
 | Field        | Type        | Description                     |
 | ------------ | ----------- | ------------------------------- |
 | match_id     | INT         | Primary key                     |
@@ -199,19 +99,28 @@ Note: You must register your face first to create an account before you can log 
 
 ### MongoDB (`arena_db`)
 
-Collection: `profile_images`
-
-Example document:
-
+**`profile_images` Collection**
+Stores unstructured biometric snapshots captured during registration.
 ```json
 {
   "_id": "<ObjectId>",
   "uid": "<user id>",
-  "image_data": "<Base64 encoded image>",
+  "image_data": "<Base64 encoded jpeg>",
   "scraped_at": "<ISODate>"
 }
 ```
 
-### Acknowledgements
+---
 
-This was originally our software systems course project, which we built from scratch. We used LLMs for debugging and syntax. We also used the models to create some boilerplate code for the frontend only. 
+## Acknowledgements
+
+This was originally our software systems course project, built from scratch using Python, HTML, CSS, and plain JavaScript. Initial LLM usage was limited to debugging syntax and generating frontend boilerplate. 
+
+Following the initial build, we utilized an AI assistant to conduct a massive architectural refactor. Together, we:
+1. Migrated the monolithic application to a fully containerized Docker Compose environment (FastAPI, Nginx, MySQL, MongoDB).
+2. Stripped out heavy, server-side C++ dependencies (`dlib`, `face_recognition`), entirely eliminating dependency hell and Python version conflicts.
+3. Rewrote the biometric pipeline to perform client-side edge inference via `face-api.js`, dropping server load to near-zero.
+4. Added a clean /register endpoint to ingest frontend-computed 128-d face arrays seamlessly alongside raw unstructured profile images.
+5. Refactored the client-side "god file" `dashboard.js`, to smoothly match the revamped state data, cookies, and asynchronous network configurations.
+6. Refactored the `main.py` "god file" into a clean, modern microservice architecture with dedicated routers, state managers, and robust database connection retry loops.
+7. Implemented an Nginx reverse proxy and environment-agnostic (self-contained) JavaScript routing to seamlessly support secure cross-device play via HTTP tunnels like ngrok.
