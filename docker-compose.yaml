@@ -13,6 +13,13 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - arena-network
+    healthcheck:      # Checks every 2 seconds whether the database has initialised yet
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 2s
+      timeout: 10s
+      retries: 10
 
   mongo-db:
     image: mongo:4.4
@@ -24,3 +31,40 @@ services:
       # If MONGO_URI is set, developer may want to override; leaving default binding
       # Mongo image does not directly consume MONGO_URI but keeping env_file for parity
       MONGO_INITDB_DATABASE: arena_db
+    networks:
+      - arena-network
+
+  backend:
+    build: 
+      context: ./backend      # Points to the Dockerfile
+    container_name: arena_backend
+    ports:
+      - "8000:8000"      # Maps container port 8000 to host port 8000
+    depends_on:     # The backend will wait till MySQL passes the healthcheck before booting up
+      mysql-db:
+        condition: service_healthy
+      mongo-db:
+        condition: service_started
+    env_file: .env
+    environment:
+      MYSQL_HOST: arena_mysql
+      MONGO_URI: mongodb://arena_mongo:27017/
+    networks:
+      - arena-network
+
+  frontend:
+    image: nginx:alpine
+    container_name: arena_frontend
+    ports:
+      - "5500:80"     # Maps host port 5500 to Nginx's internal port 80
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro,z     # Mounts the frontend folder directly into Nginx's hosting directory
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro,z   # Mount the config for nginx so it uses the custom routing rules
+    depends_on:
+      - backend
+    networks:
+      - arena-network
+
+networks:
+  arena-network:
+    driver: bridge

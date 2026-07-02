@@ -1,4 +1,4 @@
-const API_BASE = `http://${window.location.hostname}:8000`;
+const API_BASE = "";
 const leaderboardBody = document.getElementById('leaderboardBody');
 const currentUid = localStorage.getItem('uid');
 

@@ -7,5 +7,5 @@ export const state = {
     challengeTargetUid: null,
     liveWS: null,
     gameWS: null,
-    API_BASE: `http://${window.location.hostname}:8000`
+    API_BASE: ""
 };

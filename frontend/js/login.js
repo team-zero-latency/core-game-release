@@ -1,4 +1,4 @@
-const API_BASE = `http://${window.location.hostname}:8000`;
+const API_BASE = "";
 
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');

@@ -1,7 +1,8 @@
 import os
+import time
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from mysql.connector import pooling
+from mysql.connector import pooling, Error
 
 load_dotenv()
 
@@ -10,17 +11,29 @@ mongo_client = MongoClient(os.getenv("MONGO_URI"), serverSelectionTimeoutMS=2000
 mongo_db = mongo_client["arena_db"]
 images_collection = mongo_db["profile_images"]
 
-#connect to mysql
-db_pool=pooling.MySQLConnectionPool(
-    pool_name="arena_pool",
-    pool_size=10,
-    pool_reset_session=True,
-    host=os.getenv("MYSQL_HOST", "localhost"),
-    user=os.getenv("MYSQL_USER"),
-    password=os.getenv("MYSQL_PASSWORD"),
-    database="arena_db",
-    autocommit=True
-)
+#connect to mysql with an automated retry loop for container environments
+db_pool = None
+print("Attempting to connect to MySQL...")
+for attempt in range(15):
+    try:
+        db_pool=pooling.MySQLConnectionPool(
+            pool_name="arena_pool",
+            pool_size=10,
+            pool_reset_session=True,
+            host=os.getenv("MYSQL_HOST", "localhost"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("MYSQL_PASSWORD"),
+            database="arena_db",
+            autocommit=True
+        )
+        print("MySQL connection pool established")
+        break
+    except Error as e:
+        print(f"Database was not ready (Attempt {attempt+1}/15). Retrying in 2 seconds...")
+        time.sleep(2)
+
+if not db_pool:
+    raise Exception("Fatal: Could not connect to MySQL after 30 seconds")
 
 def init_db():
     local_conn = db_pool.get_connection()

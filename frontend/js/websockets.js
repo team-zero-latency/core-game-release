@@ -19,7 +19,8 @@ export function respondChallenge(challengerUid, isAccepted) {
 
 //WebSocket Connection
 export function connectLiveWebSocket() {
-    const LIVE_WS_URL = `ws://${window.location.hostname}:8000/live`;
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const LIVE_WS_URL = `${wsProtocol}//${window.location.host}/live`;
     state.liveWS = new WebSocket(LIVE_WS_URL);
 
     state.liveWS.onopen = () => {
@@ -167,7 +168,8 @@ export function connectLiveWebSocket() {
 }
 
 export function connectGameWebSocket() {
-    const GAME_WS_URL = `ws://${window.location.hostname}:8000/game/${state.currentRoomId}`;
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const GAME_WS_URL = `${wsProtocol}//${window.location.host}/game/${state.currentRoomId}`;
     state.gameWS = new WebSocket(GAME_WS_URL);
 
     state.gameWS.onopen = () => {

@@ -37,6 +37,11 @@ export async function handleLogout() {
     catch (e) {
         console.warn('[Arena] Logout request failed.');
     }
+
+    // Explicitly kill the websockets before redirecting
+    if (state.liveWS) state.liveWS.close();
+    if (state.gameWS) state.gameWS.close();
+    
     localStorage.clear();
     window.location.href = 'index.html';
 }
