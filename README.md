@@ -1,22 +1,22 @@
 # ARENA: Identity-Verified Multiplayer Tic-Tac-Toe
 
-This project is a real-time Tic-Tac-Toe multiplayer game featuring zero-latency biometric login, a modular FastAPI/WebSockets backend, resilient hybrid storage (MySQL + MongoDB), and FIDE-standard Elo matchmaking. Built using HTML, CSS, JavaScript and Python.
+ARENA is a real-time Tic-Tac-Toe multiplayer game where your face is your password. It features a FastAPI/WebSockets backend, hybrid storage (MySQL + MongoDB), and FIDE-standard Elo matchmaking. 
 
-## Key Features & Technical Highlights
+## Key Technical Features
 
-* **Zero-Latency Biometric Onboarding (Edge ML):** Replaces legacy server-side ingestion pipelines with real-time, client-side inference using `face-api.js`. The browser captures webcam streams and computes 128-d facial encodings directly on the user's GPU, passing only lightweight arrays to the backend for split-second Euclidean distance verification.
-* **Resilient Microservice Architecture:** The backend operates as a fully modularized FastAPI application, containerized alongside MySQL, MongoDB, and an Nginx frontend via Docker Compose.
-* **Automated Environment Provisioning:** Employs intelligent container healthchecks and automated Python backoff/retry loops to guarantee reliable startup sequences. The application self-initializes its relational SQL tables and NoSQL indexes on boot.
-* **Custom Secure Session Management:** Implements stateful authentication using cryptographically generated, opaque tokens. Tokens are delivered via `HttpOnly` cookies to mitigate XSS vulnerabilities, and the backend actively prevents concurrent logins.
-* **Asynchronous Matchmaking Lobby:** Utilizes WebSockets for real-time peer-to-peer matchmaking. Features live lobby status tracking, TTL (Time-To-Live) expiring challenge requests, and automatic cleanup of orphaned connections.
-* **Fault-Tolerant Disconnect Handling:** The WebSocket manager detects broken pipes or "ragequits" mid-match, safely destroying the isolated game room and automatically penalizing the disconnected player.
-* **FIDE-Standard Elo Ranking System:** Implements the official zero-sum Elo rating algorithm (K-factor of 32) to mathematically calculate expected win probabilities and dynamically update player rankings.
+* **Client-Side Face Recognition:** Instead of sending heavy images to the server, the game uses `face-api.js` to process webcam streams directly in the browser (Edge ML). It computes a 128-d facial array on the user's GPU and passes only this lightweight data to the backend for fast verification.
+* **Dockerized Microservices:** The entire stack is containerized using Docker Compose, orchestrating the FastAPI backend, Nginx reverse proxy, MySQL (for relational game data), and MongoDB (for unstructured profile snapshots).
+* **Automated Boot Sequence:** The Python backend includes a custom backoff/retry loop. It waits for the databases to fully initialize before booting and automatically generates the required SQL tables and NoSQL indexes on startup.
+* **Secure Sessions:** Authentication is stateful, using cryptographically generated opaque tokens. These are stored in `HttpOnly` cookies to prevent XSS attacks, and the backend actively blocks concurrent logins.
+* **Real-Time Matchmaking:** The WebSocket lobby handles live peer-to-peer matchmaking, tracks who is online, and manages TTL (Time-To-Live) expiring challenge requests.
+* **Disconnect Handling:** If a player loses connection or closes the tab mid-match, the WebSocket manager safely destroys the game room and issues an automatic forfeit penalty to the disconnected player.
+* **Elo Ranking System:** Player rankings update dynamically using the standard zero-sum Elo rating algorithm (K-factor of 32).
 
 ---
 
 ## Prerequisites
 
-Because this project is fully containerized, you no longer need complex C++ build tools, Python environments, or local database installations.
+Because this project is fully containerized, you do not need complex build tools or local database installations.
 
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Podman with `podman-compose`)
 * Git
@@ -26,7 +26,7 @@ Because this project is fully containerized, you no longer need complex C++ buil
 ## Quick Start Guide
 
 ### 1. Environment Setup
-Clone the repository and create a `.env` file at the project root to secure your databases:
+Clone the repository and create a `.env` file at the project root to configure the databases:
 
 ```env
 MYSQL_USER=arena_user
@@ -35,47 +35,43 @@ MONGO_URI=mongodb://arena_mongo:27017/
 ```
 
 ### 2. Launch the Application
-From the repository root, build and spin up the entire isolated microservice stack in the background:
+Build and spin up the microservices in the background:
 
 ```bash
 docker compose up --build -d
 ```
-*(Note: The Python backend includes a resilient backoff loop and will intelligently wait for the databases to initialize before booting up and auto-generating the required tables).*
 
 ### 3. Play the Game (Localhost)
 Open your browser and navigate to:
-    `http://localhost:5500/register.html`
+`http://localhost:5500/register.html`
 
-*Note: You must register your face first to create an account before you can log in and access the multiplayer lobby.*
+*Note: You must register your face to create an account before you can access the multiplayer lobby.*
 
 ### 4. Stopping the Application
-To safely spin down the microservices and preserve your database state, run from the repository root:
-
+To safely spin down the containers and preserve database state:
 ```bash
 docker compose down
 ```
 
 ---
 
-## Multiplayer over Local Network (Cross-Device)
+## Testing Multiplayer Over Wi-Fi
 
-** Important Webcam Security Note:** Modern browsers strictly block webcam access on unencrypted `http://` connections unless the URL is `localhost`. If you want friends to connect via their phones or laptops on your Wi-Fi network, you cannot simply share your Local IP address, as their browsers will block the camera.
+**Important Security Note:** Modern browsers block webcam access on unencrypted `http://` connections unless the URL is exactly `localhost`. If you share your local IP address with friends on your Wi-Fi, their browsers will block the camera.
 
-To easily test multiplayer across devices, use a secure tunnel like [ngrok](https://ngrok.com/):
+To test across different devices (like your phone or a friend's laptop), use a secure tunnel like [ngrok](https://ngrok.com/):
 
 1. Install `ngrok` on your host machine.
-2. Run the following command in your terminal to tunnel the Nginx frontend port:
+2. Tunnel the Nginx frontend port:
    ```bash
    ngrok http 5500
    ```
 3. Ngrok will generate a secure HTTPS link (e.g., `https://abc-123.ngrok.app`).
-4. Share this `https://` link with your friends on the same Wi-Fi network. The browser will recognize the Secure Context and allow webcam access for biometric registration!
+4. Share this link. The browser will recognize the secure context and allow camera access. 
 
 ---
 
 ## Database Architecture
-
-The application utilizes a hybrid database approach, isolating relational game metrics from unstructured binary profile data.
 
 ### MySQL (`arena_db`)
 
@@ -114,13 +110,13 @@ Stores unstructured biometric snapshots captured during registration.
 
 ## Acknowledgements
 
-This was originally our software systems course project, built from scratch using Python, HTML, CSS, and plain JavaScript. Initial LLM usage was limited to debugging syntax and generating frontend boilerplate. 
+This originally started as a software systems course project built by Team Zero Latency. Following the initial build, I did a massive architectural refactor to make it production-ready. 
 
-Following the initial build, we utilized an AI assistant to conduct a massive architectural refactor. Together, we:
-1. Migrated the monolithic application to a fully containerized Docker Compose environment (FastAPI, Nginx, MySQL, MongoDB).
-2. Stripped out heavy, server-side C++ dependencies (`dlib`, `face_recognition`), entirely eliminating dependency hell and Python version conflicts.
-3. Rewrote the biometric pipeline to perform client-side edge inference via `face-api.js`, dropping server load to near-zero.
-4. Added a clean /register endpoint to ingest frontend-computed 128-d face arrays seamlessly alongside raw unstructured profile images.
-5. Refactored the client-side "god file" `dashboard.js`, to smoothly match the revamped state data, cookies, and asynchronous network configurations.
-6. Refactored the `main.py` "god file" into a clean, modern microservice architecture with dedicated routers, state managers, and robust database connection retry loops.
-7. Implemented an Nginx reverse proxy and environment-agnostic (self-contained) JavaScript routing to seamlessly support secure cross-device play via HTTP tunnels like ngrok.
+The major changes in this version include:
+1. Moving from a monolithic script to a Docker Compose environment (FastAPI, Nginx, MySQL, MongoDB).
+2. Ripping out heavy server-side C++ dependencies (`dlib`, `face_recognition`) to fix dependency hell, replacing them with client-side inference (`face-api.js`).
+3. Adding a clean `/register` endpoint to ingest the frontend-computed 128-d face arrays.
+4. Breaking down the massive client-side `dashboard.js` "god file" into modular files handling UI, state, and authentication separately.
+5. Refactoring the client-side JavaScript to properly handle the new state data, updated cookies, and asynchronous network calls.
+6. Breaking down the Python `main.py` "god file" into dedicated routers and adding database connection retry loops.
+7. Adding an Nginx reverse proxy and environment-agnostic JavaScript routing to support HTTP tunneling (like ngrok) for cross-device play.
